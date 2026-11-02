@@ -1,1 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RECONV2 MACRO GUI</title>
+    <hta:application 
+        id="oRECON"
+        applicationname="RECONV2_MacroGUI"
+        border="thick"
+        borderstyle="normal"
+        caption="yes"
+        contextmenu="no"
+        maximizebutton="no"
+        minimizebutton="yes"
+        navigable="no"
+        scroll="no"
+        selection="no"
+        showintaskbar="yes"
+        singleinstance="yes"
+        sysmenu="yes"
+        windowstate="normal"
+    />
+    <style>
+        body {
+            background-color: #0c0c0c;
+            color: #00FF00;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 {
+            color: #00FFFF;
+            border-bottom: 2px solid #00FF00;
+            padding-bottom: 5px;
+            margin-top: 0;
+            font-size: 18px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        label {
+            font-size: 13px;
+            color: #a0a0a0;
+        }
+        input, select {
+            background-color: #1a1a1a;
+            color: #00FF00;
+            border: 1px solid #00FF00;
+            padding: 5px;
+            font-family: inherit;
+            width: 180px;
+            box-sizing: border-box;
+        }
+        .btn-zone {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            background-color: #111;
+            color: #00FF00;
+            border: 2px solid #00FF00;
+            padding: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00FF00;
+            color: #000;
+        }
+        #stopBtn {
+            border-color: #FF0000;
+            color: #FF0000;
+        }
+        #stopBtn:hover {
+            background-color: #FF0000;
+            color: #000;
+        }
+        .footer {
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
 
+    <script language="VBScript">
+        Dim objShell, blnRunning, timerID
+        Set objShell = CreateObject("WScript.Shell")
+        blnRunning = False
+
+        Sub Window_OnLoad
+            ' Size and center the GUI application window
+            window.resizeTo 420, 340
+            window.moveTo (screen.width - 420) / 2, (screen.height - 340) / 2
+        End Sub
+
+        Sub StartMacro
+            If blnRunning Then Exit Sub
+            
+            blnRunning = True
+            document.getElementById("startBtn").disabled = True
+            document.getElementById("statusText").innerHTML = "<span style='color:#00FFFF;'>STATUS: ARMED - Click target window...</span>"
+            
+            ' Give user 2 seconds to click into their destination window before loop starts
+            timerID = window.setTimeout("MacroLoop", 2000, "VBScript")
+        End Sub
+
+        Sub MacroLoop
+            If Not blnRunning Then Exit Sub
+
+            Dim strKey, strType, intInterval
+            strKey = document.getElementById("macroKey").value
+            strType = document.getElementById("keyType").value
+            intInterval = CInt(document.getElementById("interval").value)
+
+            ' Safety fallback for interval
+            If intInterval < 50 Then intInterval = 50
+
+            document.getElementById("statusText").innerHTML = "<span style='color:#00FF00;'>STATUS: TYPING...</span>"
+
+            ' Handle special characters vs raw strings
+            If strType = "special" Then
+                objShell.SendKeys "{" & strKey & "}"
+            Else
+                objShell.SendKeys strKey
+            End If
+
+            ' Schedule next keystroke interval execution
+            timerID = window.setTimeout("MacroLoop", intInterval, "VBScript")
+        End Sub
+
+        Sub StopMacro
+            blnRunning = False
+            window.clearTimeout(timerID)
+            document.getElementById("startBtn").disabled = False
+            document.getElementById("statusText").innerHTML = "<span style='color:#FF0000;'>STATUS: STOPPED</span>"
+        End Sub
+
+        ' Capture CTRL+C or ESC inside the GUI window to trigger immediate termination
+        Sub Document_OnKeyDown
+            Dim intKey
+            intKey = window.event.keyCode
+            
+            ' 27 = ESC key, 67 = 'C' key while checking window.event.ctrlKey
+            If intKey = 27 Or (intKey = 67 And window.event.ctrlKey) Then
+                Call StopMacro
+            End If
+        End Sub
+    </script>
+</head>
+<body>
+
+    <h2>RECONV2 MACRO CORE v2.0</h2>
+
+    <div class="container">
+        <div class="row">
+            <label for="macroKey">Key / Message to Macro:</label>
+            <input type="text" id="macroKey" value="ENTER">
+        </div>
+
+        <div class="row">
+            <label for="keyType">Input Mode Profile:</label>
+            <select id="keyType">
+                <option value="special">Special Key (e.g. ENTER, TAB, F5)</option>
+                <option value="raw">Raw String Text Phrase</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <label for="interval">Interval Delay (ms):</label>
+            <input type="number" id="interval" value="1000">
+        </div>
+
+        <div id="statusText" style="text-align:center; font-size:12px; margin-top:5px; font-weight:bold;">
+            STATUS: IDLE
+        </div>
+
+        <div class="btn-zone">
+            <button id="startBtn" onclick="VBScript:StartMacro()">START</button>
+            <button id="stopBtn" onclick="VBScript:StopMacro()">STOP</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Press CTRL + C or ESC inside GUI window to instantly stop.
+    </div>
+
+</body>
+</html>
